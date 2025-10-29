@@ -1,0 +1,94 @@
+#ifdef VS 
+ 
+precision highp float;
+uniform float time;
+attribute vec3 position;
+attribute vec3 normal;
+uniform mat3 normalMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+varying vec3 fObjNormal;
+varying vec3 fCamNormal;
+varying vec3 fObjPosition;
+varying vec3 fCamPosition;
+
+varying vec3 fObjNormal1;
+varying vec3 fObjPosition1;
+
+vec3 Expand(vec3 vec_in, float angle)
+{
+  vec3 vec_out;
+  vec_out.x=(0.9+0.1*sin(angle))*vec_in.x;
+  vec_out.y=(0.9+0.1*sin(angle))*vec_in.y;
+  vec_out.z=(0.9+0.1*sin(angle))*vec_in.z;
+  return vec_out;
+}
+
+void main()
+{
+  float theta = time*20.0;
+  
+  fObjNormal = normal;
+  fObjPosition = position;
+  
+  fObjNormal1 = normal;
+  fObjPosition1 = position;
+  
+  fObjPosition1 = Expand(fObjPosition1, theta);
+  fObjNormal1 = Expand(fObjNormal1, theta);
+  
+  fCamNormal = normalize(normalMatrix * fObjNormal1);
+  vec4 pos = modelViewMatrix * vec4(fObjPosition1, 1.0);
+  fCamPosition = pos.xyz;
+  gl_Position = projectionMatrix * pos;
+}
+ 
+#else 
+ 
+precision highp float;
+uniform float time;
+uniform vec2 resolution;
+varying vec3 fObjNormal;
+varying vec3 fCamNormal;
+varying vec3 fObjPosition;
+varying vec3 fCamPosition;
+
+void main()
+{
+  float theta = time*20.0;
+  
+  const float specular_coeff  = 5.0;
+  const float specular_exp    = 32.0;
+  vec3  light_direction = vec3(sin(theta),0.0,cos(theta)); 
+  vec3  light_direction2 = vec3(cos(theta),0.0,sin(theta)); 
+  vec3  light_direction3 = vec3(0,1,0);
+  const vec3  light_color     = vec3(1.0,0.0,1.0);
+  const vec3  light_color2     = vec3(0.0,1.0,1.0);
+  const vec3  light_color3     = vec3(1.0,1.0,1.0);
+  
+  vec3 l = normalize(light_direction);
+  vec3 n = normalize(fCamNormal);
+  vec3 e = normalize(-fCamPosition);
+  vec3 h = normalize (e+l);
+  
+  vec3 l2 = normalize(light_direction2);
+  vec3 h2 = normalize (e+l2);
+  
+  vec3 l3 = normalize(light_direction3);
+  vec3 h3 = normalize (e+l3);
+
+  vec3 specular_color = specular_coeff * pow(max(0.0,dot(n,h)),specular_exp) * light_color;
+  vec3 specular_color2 = specular_coeff * pow(max(0.0,dot(n,h2)),specular_exp) * light_color2;
+  vec3 specular_color3 = specular_coeff * pow(max(0.0,dot(n,h3)),specular_exp) * light_color3;
+  
+  vec3 dir1 = vec3(0,cos(theta),sin(theta)); 
+  float diffuse1 = pow(dot(fObjNormal,dir1),3.0);
+  vec3 col1 = diffuse1 * vec3(1,1,0);
+  
+  vec3 rainbow = vec3(0.5+cos(theta)*fObjPosition.x,cos(theta)*fObjPosition.y,cos(theta)*fObjPosition.z);
+  gl_FragColor = vec4(col1 + rainbow + specular_color + specular_color2 + specular_color3, 1.0);
+  
+  
+}
+ 
+#endif
